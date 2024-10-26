@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'timesheet_screen.dart';
 
 class TimesheetHomePage extends StatefulWidget {
   @override
@@ -12,6 +15,7 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
   DateTime? _endTime;
   Duration? _elapsedTime;
   List<Map<String, dynamic>> _timestamps = [];
+
   bool _isConnected = true;
 
   @override
@@ -19,6 +23,7 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
     super.initState();
     _requestLocationPermission();
     _checkConnectivity();
+    _loadTimestamps();
   }
 
   Future<void> _requestLocationPermission() async {
@@ -66,6 +71,7 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
         _timestamps.last['endLocation'] = position;
         _startTime = null; // Reset for next use
       }
+      _saveTimestamps();
     });
   }
 
@@ -82,6 +88,32 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
     });
   }
 
+  Future<void> _saveTimestamps() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> timestamps =
+        _timestamps.map((timestamp) => jsonEncode(timestamp)).toList();
+    await prefs.setStringList('timestamps', timestamps);
+  }
+
+  Future<void> _loadTimestamps() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? timestamps = prefs.getStringList('timestamps');
+    if (timestamps != null) {
+      setState(() {
+        _timestamps = timestamps
+            .map((timestamp) => jsonDecode(timestamp) as Map<String, dynamic>)
+            .toList();
+      });
+    }
+  }
+
+  void _showTimestamps() {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => TimestampsScreen(timestamps: _timestamps)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,6 +125,10 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             ElevatedButton(
+              onPressed: _showTimestamps,
+              child: Text('Show Timestamps'),
+            ),
+            ElevatedButton(
               onPressed: _logTime,
               child: Text(_startTime == null ? 'Start Work' : 'Stop Work'),
             ),
@@ -101,7 +137,8 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
                   'No internet connection',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style:
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             if (_timestamps.isNotEmpty)
@@ -136,7 +173,8 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 TextSpan(
-                                  text: '${timestamp['startLocation'].latitude}, ${timestamp['startLocation'].longitude}',
+                                  text:
+                                      '${timestamp['startLocation'].latitude}, ${timestamp['startLocation'].longitude}',
                                 ),
                               ],
                             ),
@@ -150,7 +188,8 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
                                     children: [
                                       TextSpan(
                                         text: 'End: ',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
                                       ),
                                       TextSpan(
                                         text: '${timestamp['end']}',
@@ -164,10 +203,12 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
                                     children: [
                                       TextSpan(
                                         text: 'End Location: ',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
                                       ),
                                       TextSpan(
-                                        text: '${timestamp['endLocation'].latitude}, ${timestamp['endLocation'].longitude}',
+                                        text:
+                                            '${timestamp['endLocation'].latitude}, ${timestamp['endLocation'].longitude}',
                                       ),
                                     ],
                                   ),
