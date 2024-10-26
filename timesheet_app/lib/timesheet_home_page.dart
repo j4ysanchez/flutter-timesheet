@@ -88,24 +88,32 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
     });
   }
 
-  Future<void> _saveTimestamps() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> timestamps =
-        _timestamps.map((timestamp) => jsonEncode(timestamp)).toList();
-    await prefs.setStringList('timestamps', timestamps);
-  }
+Future<void> _saveTimestamps() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  List<String> timestamps = _timestamps.map((timestamp) {
+    // Convert DateTime to string
+    timestamp['startTime'] = (timestamp['startTime'] as DateTime).toIso8601String();
+    timestamp['endTime'] = (timestamp['endTime'] as DateTime).toIso8601String();
+    return jsonEncode(timestamp);
+  }).toList();
+  await prefs.setStringList('timestamps', timestamps);
+}
 
-  Future<void> _loadTimestamps() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? timestamps = prefs.getStringList('timestamps');
-    if (timestamps != null) {
-      setState(() {
-        _timestamps = timestamps
-            .map((timestamp) => jsonDecode(timestamp) as Map<String, dynamic>)
-            .toList();
-      });
-    }
+Future<void> _loadTimestamps() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  List<String>? timestamps = prefs.getStringList('timestamps');
+  if (timestamps != null) {
+    setState(() {
+      _timestamps = timestamps.map((timestamp) {
+        Map<String, dynamic> decoded = jsonDecode(timestamp) as Map<String, dynamic>;
+        // Convert string back to DateTime
+        decoded['startTime'] = DateTime.parse(decoded['startTime']);
+        decoded['endTime'] = DateTime.parse(decoded['endTime']);
+        return decoded;
+      }).toList();
+    });
   }
+}
 
   void _showTimestamps() {
     Navigator.push(
