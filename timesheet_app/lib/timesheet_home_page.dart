@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class TimesheetHomePage extends StatefulWidget {
   @override
@@ -11,11 +12,13 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
   DateTime? _endTime;
   Duration? _elapsedTime;
   List<Map<String, dynamic>> _timestamps = [];
+  bool _isConnected = true;
 
   @override
   void initState() {
     super.initState();
     _requestLocationPermission();
+    _checkConnectivity();
   }
 
   Future<void> _requestLocationPermission() async {
@@ -66,6 +69,19 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
     });
   }
 
+  void _checkConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    setState(() {
+      _isConnected = connectivityResult != ConnectivityResult.none;
+    });
+
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      setState(() {
+        _isConnected = result != ConnectivityResult.none;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,81 +96,89 @@ class _TimesheetHomePageState extends State<TimesheetHomePage> {
               onPressed: _logTime,
               child: Text(_startTime == null ? 'Start Work' : 'Stop Work'),
             ),
+            if (!_isConnected)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  'No internet connection',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
             if (_timestamps.isNotEmpty)
               Expanded(
                 child: ListView.builder(
                   itemCount: _timestamps.length,
                   itemBuilder: (context, index) {
-  final timestamp = _timestamps[index];
-  return ListTile(
-    title: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: 'Start: ',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              TextSpan(
-                text: '${timestamp['start']}',
-              ),
-            ],
-          ),
-          textAlign: TextAlign.center,
-        ),
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: 'Start Location: ',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              TextSpan(
-                text: '${timestamp['startLocation'].latitude}, ${timestamp['startLocation'].longitude}',
-              ),
-            ],
-          ),
-          textAlign: TextAlign.center,
-        ),
-        if (timestamp.containsKey('end'))
-          Column(
-            children: [
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'End: ',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(
-                      text: '${timestamp['end']}',
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'End Location: ',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(
-                      text: '${timestamp['endLocation'].latitude}, ${timestamp['endLocation'].longitude}',
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-      ],
-    ),
-  );
-},
+                    final timestamp = _timestamps[index];
+                    return ListTile(
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Start: ',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(
+                                  text: '${timestamp['start']}',
+                                ),
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Start Location: ',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(
+                                  text: '${timestamp['startLocation'].latitude}, ${timestamp['startLocation'].longitude}',
+                                ),
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (timestamp.containsKey('end'))
+                            Column(
+                              children: [
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'End: ',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: '${timestamp['end']}',
+                                      ),
+                                    ],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'End Location: ',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: '${timestamp['endLocation'].latitude}, ${timestamp['endLocation'].longitude}',
+                                      ),
+                                    ],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
           ],
